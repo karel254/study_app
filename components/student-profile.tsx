@@ -8,17 +8,20 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTheme } from "@/components/theme-provider"
-import { Edit3, Save, X, Sun, Moon, User, GraduationCap, BookOpen, School } from "lucide-react"
+import { Edit3, Save, X, Sun, Moon, User, GraduationCap, BookOpen, School, LogOut } from "lucide-react"
 import type { StudentProfile } from "./student-onboarding"
+import { AnimatePresence } from "framer-motion"
 
 interface StudentProfileComponentProps {
   profile: StudentProfile
   onUpdateProfile: (profile: StudentProfile) => void
+  onLogout?: () => void
 }
 
-export function StudentProfileComponent({ profile, onUpdateProfile }: StudentProfileComponentProps) {
+export function StudentProfileComponent({ profile, onUpdateProfile, onLogout }: StudentProfileComponentProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedProfile, setEditedProfile] = useState<StudentProfile>(profile)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { theme, toggleTheme } = useTheme()
 
   const handleSave = () => {
@@ -31,6 +34,46 @@ export function StudentProfileComponent({ profile, onUpdateProfile }: StudentPro
     setIsEditing(false)
   }
 
+  const handleLogout = () => {
+    setShowLogoutConfirm(true)
+  }
+
+  const confirmLogout = () => {
+    // Clear all localStorage data
+    localStorage.clear()
+    
+    // Clear sessionStorage as well
+    sessionStorage.clear()
+    
+    // Clear any other storage mechanisms
+    if (window.indexedDB) {
+      // Clear IndexedDB if available
+      indexedDB.databases().then(databases => {
+        databases.forEach(db => {
+          if (db.name) {
+            indexedDB.deleteDatabase(db.name)
+          }
+        })
+      })
+    }
+    
+    // Clear cookies
+    document.cookie.split(";").forEach(cookie => {
+      const eqPos = cookie.indexOf("=")
+      const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
+      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"
+    })
+    
+    // Call the logout callback if provided
+    if (onLogout) {
+      onLogout()
+    } else {
+      // Default behavior: redirect to onboarding
+      window.location.href = "/"
+      window.location.reload()
+    }
+  }
+
   const profileFields = [
     { key: "name" as keyof StudentProfile, label: "Full Name", icon: User, required: true },
     { key: "course" as keyof StudentProfile, label: "Course / Major", icon: BookOpen, required: true },
@@ -41,14 +84,11 @@ export function StudentProfileComponent({ profile, onUpdateProfile }: StudentPro
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-balance">Profile</h1>
-          <p className="text-muted-foreground">Manage your account settings</p>
+      <div className="sticky top-0 z-20 bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-4 sm:p-6 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 sm:mb-6 shadow-lg">
+        <div className="text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Student Profile</h1>
+          <p className="text-sm sm:text-base text-white/80">Manage your academic information and preferences</p>
         </div>
-        <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-full bg-transparent">
-          {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-        </Button>
       </div>
 
       {/* Profile Card */}
@@ -64,12 +104,23 @@ export function StudentProfileComponent({ profile, onUpdateProfile }: StudentPro
                 <CardDescription>{profile.course || "Course not set"}</CardDescription>
               </div>
             </div>
-            {!isEditing && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="rounded-xl">
-                <Edit3 className="w-4 h-4 mr-2" />
-                Edit
+            <div className="flex items-center space-x-2">
+              {!isEditing && (
+                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="rounded-xl">
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLogout} 
+                className="rounded-xl border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
               </Button>
-            )}
+            </div>
           </div>
         </CardHeader>
 
@@ -164,6 +215,53 @@ export function StudentProfileComponent({ profile, onUpdateProfile }: StudentPro
           </div>
         </CardContent>
       </Card>
+
+      {/* Logout Confirmation Dialog */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowLogoutConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                  <LogOut className="w-8 h-8 text-red-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Logout Confirmation</h3>
+                <p className="text-gray-600 mb-6">
+                  This will completely clear all your data including tasks, projects, and settings. 
+                  This action cannot be undone.
+                </p>
+                <div className="flex space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={confirmLogout}
+                    className="flex-1 bg-red-600 hover:bg-red-700"
+                  >
+                    Logout & Clear Data
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

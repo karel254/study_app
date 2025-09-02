@@ -1,27 +1,125 @@
-import type React from "react"
 import type { Metadata } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
-import { Analytics } from "@vercel/analytics/next"
-import { Suspense } from "react"
+import { Inter } from "next/font/google"
 import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Study & Assignment Tracker",
-  description: "Premium mobile-app-like study tracker for students",
-  generator: "v0.app",
+  title: "StudySync - Focus Study Tracker",
+  description: "A focused study tracker for seamless learning sessions",
+  manifest: "/manifest.json",
+  themeColor: "#3b82f6",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "StudySync",
+  },
+  icons: {
+    icon: [
+      { url: "/Minimalist Logo for StudySync App (Version 1).png", sizes: "192x192", type: "image/png" },
+      { url: "/placeholder-logo.png", sizes: "512x512", type: "image/png" }
+    ],
+    apple: [
+      { url: "/Minimalist Logo for StudySync App (Version 1).png", sizes: "180x180", type: "image/png" }
+    ]
+  },
+  other: {
+    "msapplication-TileColor": "#3b82f6",
+    "msapplication-config": "/browserconfig.xml"
+  }
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
-        <Suspense fallback={null}>{children}</Suspense>
-        <Analytics />
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="application-name" content="StudySync" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="StudySync" />
+        <meta name="description" content="A focused study tracker for seamless learning sessions" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
+        <meta name="msapplication-TileColor" content="#3b82f6" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="theme-color" content="#3b82f6" />
+        
+        <link rel="apple-touch-icon" href="/Minimalist Logo for StudySync App (Version 1).png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/Minimalist Logo for StudySync App (Version 1).png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/Minimalist Logo for StudySync App (Version 1).png" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="mask-icon" href="/Minimalist Logo for StudySync App (Version 1).png" color="#3b82f6" />
+        <link rel="shortcut icon" href="/Minimalist Logo for StudySync App (Version 1).png" />
+      </head>
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+        
+        {/* Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                      
+                      // Check if there's an update available
+                      registration.addEventListener('updatefound', function() {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', function() {
+                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New content is available, refresh the page
+                            if (confirm('New version available! Reload to update?')) {
+                              window.location.reload();
+                            }
+                          }
+                        });
+                      });
+                    })
+                    .catch(function(err) {
+                      console.log('ServiceWorker registration failed: ', err);
+                    });
+                });
+                
+                // Handle offline/online events
+                window.addEventListener('online', function() {
+                  console.log('App is online');
+                  document.body.classList.remove('offline');
+                  // Reload the page to get fresh content
+                  if (window.location.pathname === '/offline') {
+                    window.location.href = '/';
+                  }
+                });
+                
+                window.addEventListener('offline', function() {
+                  console.log('App is offline');
+                  document.body.classList.add('offline');
+                });
+                
+                // Check initial connection status
+                if (!navigator.onLine) {
+                  console.log('App started offline');
+                  document.body.classList.add('offline');
+                }
+              }
+            `
+          }}
+        />
       </body>
     </html>
   )

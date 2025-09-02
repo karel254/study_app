@@ -9,10 +9,12 @@ import { UnifiedTaskDashboard } from "@/components/unified-task-dashboard"
 import { GroupManagement } from "@/components/group-management"
 import { ThemeProvider } from "@/components/theme-provider"
 import { BottomNavigation } from "@/components/bottom-navigation"
+import { TimerProvider } from "@/contexts/timer-context"
 import type { Task, CollaborativeTask, GroupProject } from "@/types/collaboration"
 import { CalendarView } from "@/components/calendar-view"
 import { PomodoroTimer } from "@/components/pomodoro-timer"
 import { StudentProfileComponent } from "@/components/student-profile"
+import { useOffline } from "@/hooks/use-offline"
 
 export default function StudyTracker() {
   const [activeTab, setActiveTab] = useState<"home" | "calendar" | "pomodoro" | "profile">("home")
@@ -24,24 +26,63 @@ export default function StudyTracker() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [showGroups, setShowGroups] = useState(false)
+  
+  // Offline detection
+  const { isOnline } = useOffline()
 
   useEffect(() => {
+    // Check for URL parameters to set initial tab
+    const urlParams = new URLSearchParams(window.location.search)
+    const tabParam = urlParams.get('tab')
+    
+    if (tabParam && ['home', 'pomodoro', 'calendar', 'profile'].includes(tabParam)) {
+      setActiveTab(tabParam as 'home' | 'pomodoro' | 'calendar' | 'profile')
+    } else {
+      // Default to tasks page (home tab) - this is the main dashboard
+      setActiveTab('home')
+    }
+    
+    // Clear the URL parameter after setting the tab
+    if (tabParam) {
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+    }
+  }, [])
+
+  useEffect(() => {
+    // Redirect to offline page if user is offline
+    if (!isOnline && window.location.pathname !== '/offline') {
+      window.location.href = '/offline'
+      return
+    }
+    
     // Clear any corrupted localStorage data on startup
     clearCorruptedLocalStorage()
     
     const timer = setTimeout(() => {
-      if (!studentProfile) {
+      // Only show onboarding if no profile exists and we're not already showing it
+      if (!studentProfile && !showOnboarding) {
         setShowOnboarding(true)
       }
       setIsLoading(false)
     }, 100)
 
     return () => clearTimeout(timer)
-  }, []) // Remove studentProfile dependency to prevent infinite loops
+  }, [studentProfile, showOnboarding, isOnline])
 
   const handleOnboardingComplete = (profile: StudentProfile) => {
     setStudentProfile(profile)
     setShowOnboarding(false)
+  }
+
+  const handleLogout = () => {
+    // Clear all state
+    setStudentProfile(null)
+    setTasks([])
+    setCollaborativeTasks([])
+    setProjects([])
+    setSelectedProject(null)
+    setShowOnboarding(true)
   }
 
   const addTask = (task: Omit<Task, "id" | "createdAt">) => {
@@ -105,6 +146,8 @@ export default function StudyTracker() {
               projects={projects}
               onUpdateProjects={setProjects}
               onBack={() => setShowGroups(false)}
+              onAddCollaborativeTask={addCollaborativeTask}
+              collaborativeTasks={collaborativeTasks}
             />
           )
         }
@@ -131,6 +174,7 @@ export default function StudyTracker() {
           <StudentProfileComponent
             profile={studentProfile || { name: "", course: "", year: "", university: "" }}
             onUpdateProfile={setStudentProfile}
+            onLogout={handleLogout}
           />
         )
       default:
@@ -164,25 +208,27 @@ export default function StudyTracker() {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-background text-foreground">
-        <AnimatePresence>
-          {showOnboarding && <StudentOnboarding onComplete={handleOnboardingComplete} />}
-        </AnimatePresence>
+      <TimerProvider>
+        <div className="min-h-screen bg-background text-foreground">
+          <AnimatePresence>
+            {showOnboarding && <StudentOnboarding onComplete={handleOnboardingComplete} />}
+          </AnimatePresence>
 
-        <main className="pb-20 px-4 pt-0 max-w-md mx-auto">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderActiveTab()}
-          </motion.div>
-        </main>
+          <main className="pb-20 px-3 sm:px-4 pt-0 max-w-md mx-auto">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderActiveTab()}
+            </motion.div>
+          </main>
 
-        <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-      </div>
+          <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+        </div>
+      </TimerProvider>
     </ThemeProvider>
   )
 }

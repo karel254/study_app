@@ -144,18 +144,10 @@ export function CalendarView({ tasks }: CalendarViewProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-balance">Calendar</h1>
-          <p className="text-muted-foreground">View your tasks and deadlines</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={() => navigateMonth("prev")} className="rounded-full">
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => navigateMonth("next")} className="rounded-full">
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+      <div className="sticky top-0 z-20 bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-4 sm:p-6 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 sm:mb-6 shadow-lg">
+        <div className="text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Calendar View</h1>
+          <p className="text-sm sm:text-base text-white/80">Track your tasks and deadlines across time</p>
         </div>
       </div>
 

@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { AlertTriangle, CheckCircle2, Clock, User, Users, Target } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Clock, User, Users, Target, Bell } from "lucide-react"
 import type { Task, CollaborativeTask, GroupProject } from "@/types/collaboration"
 import { AddTaskForm } from "./add-task-form"
 import { CollaborativeAddTaskForm } from "./collaborative-add-task-form"
@@ -47,6 +47,18 @@ export function UnifiedTaskDashboard({
   const [selectedProject, setSelectedProject] = useState<GroupProject | null>(null)
   const [filter, setFilter] = useState<FilterType>("all")
   const [selectedProjectFilter, setSelectedProjectFilter] = useState<string | null>(null)
+  const [showNotification, setShowNotification] = useState(false)
+  const [lastTaskCount, setLastTaskCount] = useState(0)
+
+  // Track task count changes for notifications
+  useEffect(() => {
+    const currentTaskCount = individualTasks.length + collaborativeTasks.length
+    if (lastTaskCount > 0 && currentTaskCount > lastTaskCount) {
+      setShowNotification(true)
+      setTimeout(() => setShowNotification(false), 3000)
+    }
+    setLastTaskCount(currentTaskCount)
+  }, [individualTasks.length, collaborativeTasks.length, lastTaskCount])
 
   const allTasks: TaskWithType[] = useMemo(() => {
     const individual: TaskWithType[] = individualTasks.map((task) => ({ ...task, type: "individual" as const }))
@@ -61,7 +73,7 @@ export function UnifiedTaskDashboard({
     const now = new Date()
     const threeDaysFromNow = subDays(startOfDay(now), -3)
 
-    const upcoming = allTasks.filter((task) => {
+    const upcoming: TaskWithType[] = allTasks.filter((task) => {
       if (task.completed) return false
       const deadline = new Date(task.deadline)
       return isWithinInterval(deadline, { start: startOfDay(now), end: threeDaysFromNow })
@@ -137,15 +149,24 @@ export function UnifiedTaskDashboard({
       upcomingPersonal: upcoming.filter((t) => t.type === "individual").length,
       upcomingTeam: upcoming.filter((t) => t.type === "collaborative").length,
       
-      // Project-based stats
+      // Project-based stats - ensure all collaborative tasks are counted
       projectsWithTasks: projects.filter(p => 
         collaborativeTasks.some(t => t.projectId === p.id)
       ).length,
       totalProjects: projects.length,
+      
+      // Additional team task stats
+      teamTasksByProject: projects.map(project => ({
+        projectId: project.id,
+        projectName: project.name,
+        totalTasks: collaborativeTasks.filter(t => t.projectId === project.id).length,
+        pendingTasks: collaborativeTasks.filter(t => t.projectId === project.id && !t.completed).length,
+        completedTasks: collaborativeTasks.filter(t => t.projectId === project.id && t.completed).length,
+      }))
     }
 
     return { upcomingTasks: upcoming, filteredTasks: filtered, stats }
-  }, [allTasks, filter, individualTasks.length, collaborativeTasks.length])
+  }, [allTasks, filter, individualTasks, collaborativeTasks, projects, selectedProjectFilter])
 
   const filterOptions = [
     { value: "all" as const, label: "All Tasks", count: stats.total, icon: Target },
@@ -171,91 +192,141 @@ export function UnifiedTaskDashboard({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Sticky Header - Only the title and action buttons */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-4 shadow-sm">
+      <div className="sticky top-0 z-20 bg-gradient-to-r from-blue-900 to-blue-800 backdrop-blur supports-[backdrop-filter]:bg-blue-900/95 border-b border-blue-700 pb-4 shadow-lg -mx-4 sm:-mx-6 px-4 sm:px-6">
+        {/* Notification Banner */}
+        <AnimatePresence>
+          {showNotification && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-4 p-3 bg-green-500/20 border border-green-400/30 rounded-lg flex items-center space-x-2 text-green-200"
+            >
+              <Bell className="w-4 h-4 animate-pulse" />
+              <span className="text-sm font-medium">New task created! Stats updated in real-time.</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-balance">All Tasks</h1>
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <img 
+              src="/Minimalist Logo for StudySync App (Version 1).png" 
+              alt="StudySync Logo" 
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg"
+            />
+            <h1 className="text-xl sm:text-2xl font-bold text-balance text-white">All Tasks</h1>
           </div>
           <div className="flex space-x-2">
-            <Button onClick={() => setShowAddForm("individual")} size="sm" variant="outline" className="rounded-full">
-              <User className="w-4 h-4 mr-2" />
-              Personal
+            <Button onClick={() => setShowAddForm("individual")} size="sm" variant="outline" className="rounded-full bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50 text-xs sm:text-sm px-3 sm:px-4">
+              <User className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Personal</span>
+              <span className="sm:hidden">+</span>
             </Button>
-            <Button onClick={onShowGroups} size="sm" variant="outline" className="rounded-full">
-              <Users className="w-4 h-4 mr-2" />
-              Groups
+            <Button onClick={onShowGroups} size="sm" variant="outline" className="rounded-full bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50 text-xs sm:text-sm px-3 sm:px-4">
+              <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Groups</span>
+              <span className="sm:hidden">👥</span>
             </Button>
-          </div>
           </div>
         </div>
+      </div>
 
       {/* Quick Stats Cards - Regular scrollable content */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <motion.div
+          key={`total-${stats.total}`}
+          initial={{ scale: 0.95, opacity: 0.8 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-md hover:shadow-lg transition-all duration-200">
+            <CardContent className="pt-3 sm:pt-4 p-3 sm:p-4">
               <div className="flex items-center space-x-2">
-                <Target className="w-4 h-4 text-blue-600" />
+                <Target className="w-3 h-3 sm:w-4 sm:h-4 text-blue-700" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-xs text-muted-foreground">Total Tasks</p>
-                <p className="text-xs text-blue-600">
-                  {stats.personal} personal • {stats.collaborative} team
-                </p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-900">{stats.total}</p>
+                  <p className="text-xs sm:text-xs text-blue-700">Total Tasks</p>
+                  <p className="text-xs text-blue-600 hidden sm:block">
+                    {stats.personal} personal • {stats.collaborative} team
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-4">
+        </motion.div>
+        <motion.div
+          key={`pending-${stats.pending}`}
+          initial={{ scale: 0.95, opacity: 0.8 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-md hover:shadow-lg transition-all duration-200">
+            <CardContent className="pt-3 sm:pt-4 p-3 sm:p-4">
               <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-orange-600" />
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-orange-700" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.pending}</p>
-                  <p className="text-xs text-muted-foreground">Pending</p>
-                <p className="text-xs text-orange-600">
-                  {stats.personalPending} personal • {stats.collaborativePending} team
-                </p>
+                  <p className="text-lg sm:text-2xl font-bold text-orange-900">{stats.pending}</p>
+                  <p className="text-xs sm:text-xs text-orange-700">Pending</p>
+                  <p className="text-xs text-orange-600 hidden sm:block">
+                    {stats.personalPending} personal • {stats.collaborativePending} team
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-4">
+        </motion.div>
+        <motion.div
+          key={`upcoming-${stats.upcoming}`}
+          initial={{ scale: 0.95, opacity: 0.8 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 shadow-md hover:shadow-lg transition-all duration-200">
+            <CardContent className="pt-3 sm:pt-4 p-3 sm:p-4">
               <div className="flex items-center space-x-2">
-                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-red-700" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.upcoming}</p>
-                  <p className="text-xs text-muted-foreground">Due Soon</p>
-                <p className="text-xs text-red-600">
-                  {stats.upcomingPersonal} personal • {stats.upcomingTeam} team
-                </p>
+                  <p className="text-lg sm:text-2xl font-bold text-red-900">{stats.upcoming}</p>
+                  <p className="text-xs sm:text-xs text-red-700">Due Soon</p>
+                  <p className="text-xs text-red-600 hidden sm:block">
+                    {stats.upcomingPersonal} personal • {stats.upcomingTeam} team
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-4">
+        </motion.div>
+        <motion.div
+          key={`completed-${stats.completed}`}
+          initial={{ scale: 0.95, opacity: 0.8 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-md hover:shadow-lg transition-all duration-200">
+            <CardContent className="pt-3 sm:pt-4 p-3 sm:p-4">
               <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-700" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.completed}</p>
-                  <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="text-xs text-green-600">
-                  {stats.completedPersonal} personal • {stats.completedTeam} team
-                </p>
+                  <p className="text-lg sm:text-2xl font-bold text-green-900">{stats.completed}</p>
+                  <p className="text-xs sm:text-xs text-green-700">Completed</p>
+                  <p className="text-xs text-green-600 hidden sm:block">
+                    {stats.completedPersonal} personal • {stats.upcomingTeam} team
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
+        </motion.div>
       </div>
 
       {/* Project-based Stats */}
       {projects.length > 0 && (
-        <Card className="bg-card/50 backdrop-blur border-0 shadow-lg">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Team Projects Overview</CardTitle>
+            <CardTitle className="text-lg text-blue-900">Team Projects Overview</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -270,41 +341,41 @@ export function UnifiedTaskDashboard({
                 }).length
 
                 return (
-                  <div key={project.id} className="p-3 rounded-lg border bg-background/50">
+                  <div key={project.id} className="p-3 rounded-lg border border-blue-200 bg-white/80 backdrop-blur shadow-md hover:shadow-lg transition-all duration-200">
                     <div className="flex items-center space-x-2 mb-2">
                       <div 
                         className="w-3 h-3 rounded-full" 
                         style={{ backgroundColor: project.color }}
                       />
-                      <h4 className="font-medium text-sm">{project.name}</h4>
+                      <h4 className="font-medium text-sm text-blue-900">{project.name}</h4>
                     </div>
                     
                     {/* Project Type and Duration */}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                    <div className="flex items-center justify-between text-xs text-blue-700 mb-2">
                       <span>{project.taskType || "Project"}</span>
                       <span>{Math.floor((project.duration || 60) / 60)}h {(project.duration || 60) % 60}m</span>
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div className="text-center">
-                        <div className="font-bold text-blue-600">{projectTasks.length}</div>
-                        <div className="text-muted-foreground">Total</div>
+                        <div className="font-bold text-blue-700">{projectTasks.length}</div>
+                        <div className="text-blue-600">Total</div>
                       </div>
                       <div className="text-center">
                         <div className="font-bold text-orange-600">{pendingTasks}</div>
-                        <div className="text-muted-foreground">Pending</div>
+                        <div className="text-orange-600">Pending</div>
                       </div>
                       <div className="text-center">
                         <div className="font-bold text-green-600">{completedTasks}</div>
-                        <div className="text-muted-foreground">Done</div>
+                        <div className="text-green-600">Done</div>
                       </div>
                     </div>
                     
                     {/* Project Deadline */}
                     {(project.deadline || project.taskType) && (
-                      <div className="mt-2 pt-2 border-t border-border/50">
+                      <div className="mt-2 pt-2 border-t border-blue-200">
                         {project.deadline && (
-                          <div className="text-xs text-muted-foreground text-center">
+                          <div className="text-xs text-blue-600 text-center">
                             Due: {new Date(project.deadline).toLocaleDateString()}
                           </div>
                         )}
@@ -328,43 +399,43 @@ export function UnifiedTaskDashboard({
 
       {/* Team Task Summary */}
       {collaborativeTasks.length > 0 && (
-        <Card className="bg-card/50 backdrop-blur border-0 shadow-lg">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center space-x-2">
+            <CardTitle className="text-lg flex items-center space-x-2 text-blue-900">
               <Users className="w-5 h-5" />
               <span>Team Tasks Summary</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
-                <div className="text-2xl font-bold text-blue-600">{stats.collaborative}</div>
-                <div className="text-sm text-muted-foreground">Total Team Tasks</div>
+              <div className="text-center p-3 rounded-lg bg-blue-200/50 border border-blue-300">
+                <div className="text-2xl font-bold text-blue-900">{stats.collaborative}</div>
+                <div className="text-sm text-blue-700">Total Team Tasks</div>
               </div>
-              <div className="text-center p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30">
-                <div className="text-2xl font-bold text-orange-600">{stats.collaborativePending}</div>
-                <div className="text-sm text-muted-foreground">Pending</div>
+              <div className="text-center p-3 rounded-lg bg-orange-200/50 border border-orange-300">
+                <div className="text-2xl font-bold text-orange-900">{stats.collaborativePending}</div>
+                <div className="text-sm text-orange-700">Pending</div>
               </div>
-              <div className="text-center p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
-                <div className="text-2xl font-bold text-green-600">{stats.completedTeam}</div>
-                <div className="text-sm text-muted-foreground">Completed</div>
+              <div className="text-center p-3 rounded-lg bg-green-200/50 border border-green-300">
+                <div className="text-2xl font-bold text-green-900">{stats.completedTeam}</div>
+                <div className="text-sm text-green-700">Completed</div>
               </div>
-              <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-950/30">
-                <div className="text-2xl font-bold text-red-600">{stats.highPriority}</div>
-                <div className="text-sm text-muted-foreground">High Priority</div>
-        </div>
-      </div>
+              <div className="text-center p-3 rounded-lg bg-red-200/50 border border-red-300">
+                <div className="text-2xl font-bold text-red-900">{stats.highPriority}</div>
+                <div className="text-sm text-red-700">High Priority</div>
+              </div>
+            </div>
             
             {/* Progress Bar */}
             {stats.collaborative > 0 && (
               <div className="mt-4">
-                <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                <div className="flex justify-between text-sm text-blue-700 mb-2">
                   <span>Team Progress</span>
                   <span>{Math.round((stats.completedTeam / stats.collaborative) * 100)}%</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
+                <div className="w-full bg-blue-200 rounded-full h-2">
                   <div 
-                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${(stats.completedTeam / stats.collaborative) * 100}%` }}
                   />
                 </div>
@@ -401,77 +472,94 @@ export function UnifiedTaskDashboard({
         </motion.div>
       )}
 
-      {/* Filter Tabs - Regular scrollable content */}
-      <div className="flex space-x-2 overflow-x-auto pb-2">
-        {filterOptions.map((option) => {
-          const Icon = option.icon
-          return (
-            <Button
-              key={option.value}
-              variant={filter === option.value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter(option.value)}
-              className="rounded-full whitespace-nowrap"
-            >
-              <Icon className="w-4 h-4 mr-2" />
-              {option.label}
-              {option.count > 0 && (
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  {option.count}
-                </Badge>
-              )}
-            </Button>
-          )
-        })}
-        
-        {/* Project-specific filters */}
-        {projects.length > 0 && (
-          <>
-            <Separator orientation="vertical" className="h-8" />
-            {projects.map((project) => {
-              const projectTasks = collaborativeTasks.filter(task => task.projectId === project.id)
-              const isActive = filter === "project" && selectedProjectFilter === project.id
-              
+      {/* Filter Tabs */}
+      <div className="space-y-3">
+        {/* Main Filters */}
+        <div className="overflow-x-auto">
+          <div className="flex space-x-2 pb-2 min-w-max">
+            {filterOptions.map((option) => {
+              const Icon = option.icon
+              const isActive = filter === option.value
+
               return (
                 <Button
-                  key={project.id}
+                  key={option.value}
                   variant={isActive ? "default" : "outline"}
                   size="sm"
-                  onClick={() => {
-                    setFilter("project")
-                    setSelectedProjectFilter(project.id)
-                  }}
-                  className="rounded-full whitespace-nowrap"
+                  onClick={() => setFilter(option.value)}
+                  className={`rounded-full whitespace-nowrap ${
+                    isActive
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "border-blue-300 text-blue-700 hover:bg-blue-50"
+                  }`}
                 >
-                  <div 
-                    className="w-3 h-3 rounded-full mr-2" 
-                    style={{ backgroundColor: project.color }}
-                  />
-                  {project.name}
-                  {projectTasks.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 text-xs">
-                      {projectTasks.length}
-                    </Badge>
-                  )}
+                  <Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <span className="text-xs sm:text-sm">{option.label}</span>
+                  <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                    {option.count}
+                  </Badge>
                 </Button>
               )
             })}
-            
-            {/* Clear Project Filter */}
-            {(filter === "project" && selectedProjectFilter) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setFilter("all")
-                  setSelectedProjectFilter(null)
-                }}
-                className="rounded-full text-muted-foreground hover:text-foreground"
-              >
-                Clear Filter
-              </Button>
-            )}
-          </>
+          </div>
+        </div>
+
+        {/* Project Filters */}
+        {projects.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Separator className="flex-1" />
+              <span className="text-xs text-muted-foreground px-2">Project Filters</span>
+              <Separator className="flex-1" />
+            </div>
+            <div className="overflow-x-auto">
+              <div className="flex space-x-2 pb-2 min-w-max">
+                {projects.map((project) => {
+                  const projectTasks = collaborativeTasks.filter(task => task.projectId === project.id)
+                  const isActive = filter === "project" && selectedProjectFilter === project.id
+                  
+                  return (
+                    <Button
+                      key={project.id}
+                      variant={isActive ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setFilter("project")
+                        setSelectedProjectFilter(project.id)
+                      }}
+                      className="rounded-full whitespace-nowrap"
+                    >
+                      <div 
+                        className="w-2 h-2 sm:w-3 sm:h-3 rounded-full mr-1 sm:mr-2" 
+                        style={{ backgroundColor: project.color }}
+                      />
+                      <span className="text-xs sm:text-sm">{project.name}</span>
+                      {projectTasks.length > 0 && (
+                        <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                          {projectTasks.length}
+                        </Badge>
+                      )}
+                    </Button>
+                  )
+                })}
+                
+                {/* Clear Project Filter */}
+                {(filter === "project" && selectedProjectFilter) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFilter("all")
+                      setSelectedProjectFilter(null)
+                    }}
+                    className="rounded-full text-muted-foreground hover:text-foreground text-xs sm:text-sm"
+                  >
+                    Clear Filter
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
