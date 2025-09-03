@@ -123,8 +123,7 @@ export function AddTaskForm({ onSubmit, onCancel }: AddTaskFormProps) {
                 <Input
                   id="duration"
                   type="number"
-                  min="15"
-                  step="15"
+                  min="1"
                   value={formData.duration}
                   onChange={(e) => setFormData((prev) => ({ ...prev, duration: parseInt(e.target.value) || 60 }))}
                   className="rounded-xl"

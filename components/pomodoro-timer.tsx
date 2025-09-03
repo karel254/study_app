@@ -8,10 +8,22 @@ import { useTimer } from "@/contexts/timer-context"
 export function PomodoroTimer() {
   const { timerState, startTimer, pauseTimer, resetTimer, switchMode, completeSession } = useTimer()
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+  const formatTime = (seconds: number): string => {
+    // Debug logging to help identify issues
+    if (typeof seconds !== 'number' || isNaN(seconds)) {
+      console.warn('Timer received invalid seconds:', seconds, typeof seconds)
+      return "00:00"
+    }
+    
+    if (seconds < 0) {
+      console.warn('Timer received negative seconds:', seconds)
+      return "00:00"
+    }
+    
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
   const getModeColor = (mode: string) => {
@@ -108,7 +120,7 @@ export function PomodoroTimer() {
                   className="transition-all duration-1000 ease-linear"
                 />
               </svg>
-              
+
               {/* Timer Display */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div className={`text-4xl sm:text-6xl font-bold ${getModeColor(timerState.mode)}`}>
@@ -118,8 +130,8 @@ export function PomodoroTimer() {
                   {timerState.status === "running" ? "Working..." : timerState.status === "paused" ? "Paused" : "Ready"}
                 </div>
               </div>
+              </div>
             </div>
-          </div>
 
           {/* Controls */}
           <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
@@ -138,11 +150,11 @@ export function PomodoroTimer() {
             <Button onClick={resetTimer} variant="outline" size="lg" className="border-blue-300 text-blue-700 hover:bg-blue-50 rounded-full px-6 sm:px-8">
               <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Reset
-            </Button>
-          </div>
+              </Button>
+            </div>
 
           {/* Session Counter */}
-          <div className="text-center">
+            <div className="text-center">
             <p className="text-sm sm:text-base text-blue-700">
               Completed Sessions: <span className="font-bold">{timerState.completedSessions}</span>
             </p>
@@ -163,8 +175,8 @@ export function PomodoroTimer() {
                   <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0" />
                   <span className="text-sm sm:text-base text-blue-700 flex-1">Session {timerState.completedSessions - i}</span>
                   <span className="text-xs sm:text-sm text-blue-500">25 minutes</span>
-                </div>
-              ))}
+                  </div>
+                ))}
             </div>
           </CardContent>
         </Card>

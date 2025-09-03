@@ -7,7 +7,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { AlertTriangle, CheckCircle2, Clock, User, Users, Target, Bell } from "lucide-react"
+import { 
+  Target, 
+  Clock, 
+  AlertTriangle, 
+  CheckCircle2, 
+  User, 
+  Users, 
+  Plus, 
+  HelpCircle,
+  Filter,
+  Calendar,
+  ListTodo,
+  Bell
+} from "lucide-react"
 import type { Task, CollaborativeTask, GroupProject } from "@/types/collaboration"
 import { AddTaskForm } from "./add-task-form"
 import { CollaborativeAddTaskForm } from "./collaborative-add-task-form"
@@ -26,6 +39,7 @@ interface UnifiedTaskDashboardProps {
   onUpdateCollaborativeTask: (id: string, updates: Partial<CollaborativeTask>) => void
   onDeleteCollaborativeTask: (id: string) => void
   onShowGroups: () => void
+  onShowHelp?: () => void
 }
 
 type FilterType = "all" | "personal" | "collaborative" | "pending" | "completed" | "upcoming" | "high-priority" | "project"
@@ -42,6 +56,7 @@ export function UnifiedTaskDashboard({
   onUpdateCollaborativeTask,
   onDeleteCollaborativeTask,
   onShowGroups,
+  onShowHelp,
 }: UnifiedTaskDashboardProps) {
   const [showAddForm, setShowAddForm] = useState<"individual" | "collaborative" | null>(null)
   const [selectedProject, setSelectedProject] = useState<GroupProject | null>(null)
@@ -73,7 +88,7 @@ export function UnifiedTaskDashboard({
     const now = new Date()
     const threeDaysFromNow = subDays(startOfDay(now), -3)
 
-    const upcoming: TaskWithType[] = allTasks.filter((task) => {
+    const upcoming: TaskWithType[] = allTasks.filter((task: TaskWithType) => {
       if (task.completed) return false
       const deadline = new Date(task.deadline)
       return isWithinInterval(deadline, { start: startOfDay(now), end: threeDaysFromNow })
@@ -82,28 +97,28 @@ export function UnifiedTaskDashboard({
     let filtered: TaskWithType[] = allTasks
     switch (filter) {
       case "personal":
-        filtered = allTasks.filter((task) => task.type === "individual")
+        filtered = allTasks.filter((task: TaskWithType) => task.type === "individual")
         break
       case "collaborative":
-        filtered = allTasks.filter((task) => task.type === "collaborative")
+        filtered = allTasks.filter((task: TaskWithType) => task.type === "collaborative")
         break
       case "pending":
-        filtered = allTasks.filter((task) => !task.completed)
+        filtered = allTasks.filter((task: TaskWithType) => !task.completed)
         break
       case "completed":
-        filtered = allTasks.filter((task) => task.completed)
+        filtered = allTasks.filter((task: TaskWithType) => task.completed)
         break
       case "upcoming":
         filtered = upcoming
         break
       case "high-priority":
         filtered = allTasks.filter(
-          (task) => task.type === "collaborative" && (task as CollaborativeTask).priority === "high",
+          (task: TaskWithType) => task.type === "collaborative" && (task as CollaborativeTask).priority === "high",
         )
         break
       case "project":
         if (selectedProjectFilter) {
-          filtered = allTasks.filter((task) => 
+          filtered = allTasks.filter((task: TaskWithType) => 
             task.type === "collaborative" && 
             (task as CollaborativeTask).projectId === selectedProjectFilter
           )
@@ -194,7 +209,7 @@ export function UnifiedTaskDashboard({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Sticky Header - Only the title and action buttons */}
-      <div className="sticky top-0 z-20 bg-gradient-to-r from-blue-900 to-blue-800 backdrop-blur supports-[backdrop-filter]:bg-blue-900/95 border-b border-blue-700 pb-4 shadow-lg -mx-4 sm:-mx-6 px-4 sm:px-6">
+      <div className="sticky top-0 z-20 bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-4 sm:p-6 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 sm:mb-6 shadow-lg">
         {/* Notification Banner */}
         <AnimatePresence>
           {showNotification && (
@@ -210,27 +225,27 @@ export function UnifiedTaskDashboard({
           )}
         </AnimatePresence>
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            <img 
-              src="/Minimalist Logo for StudySync App (Version 1).png" 
-              alt="StudySync Logo" 
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg"
-            />
-            <h1 className="text-xl sm:text-2xl font-bold text-balance text-white">All Tasks</h1>
-          </div>
-          <div className="flex space-x-2">
-            <Button onClick={() => setShowAddForm("individual")} size="sm" variant="outline" className="rounded-full bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50 text-xs sm:text-sm px-3 sm:px-4">
-              <User className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Personal</span>
-              <span className="sm:hidden">+</span>
+        <div className="text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">All Tasks</h1>
+          <p className="text-sm sm:text-base text-white/80">Manage your personal and team tasks</p>
+        </div>
+        
+        {/* Action Buttons - Horizontal Layout */}
+        <div className="flex justify-center space-x-3 mt-4">
+          <Button onClick={() => setShowAddForm("individual")} size="sm" variant="outline" className="rounded-xl bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50">
+            <User className="w-4 h-4 mr-2" />
+            Personal
+          </Button>
+          <Button onClick={onShowGroups} size="sm" variant="outline" className="rounded-xl bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50">
+            <Users className="w-4 h-4 mr-2" />
+            Groups
+          </Button>
+          {onShowHelp && (
+            <Button onClick={onShowHelp} size="sm" variant="outline" className="rounded-xl bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50">
+              <HelpCircle className="w-4 h-4 mr-2" />
+              Help
             </Button>
-            <Button onClick={onShowGroups} size="sm" variant="outline" className="rounded-full bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50 text-xs sm:text-sm px-3 sm:px-4">
-              <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Groups</span>
-              <span className="sm:hidden">👥</span>
-            </Button>
-          </div>
+          )}
         </div>
       </div>
 
@@ -325,10 +340,7 @@ export function UnifiedTaskDashboard({
       {/* Project-based Stats */}
       {projects.length > 0 && (
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg text-blue-900">Team Projects Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {projects.map((project) => {
                 const projectTasks = collaborativeTasks.filter(task => task.projectId === project.id)
@@ -400,13 +412,7 @@ export function UnifiedTaskDashboard({
       {/* Team Task Summary */}
       {collaborativeTasks.length > 0 && (
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center space-x-2 text-blue-900">
-              <Users className="w-5 h-5" />
-              <span>Team Tasks Summary</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center p-3 rounded-lg bg-blue-200/50 border border-blue-300">
                 <div className="text-2xl font-bold text-blue-900">{stats.collaborative}</div>
@@ -477,16 +483,16 @@ export function UnifiedTaskDashboard({
         {/* Main Filters */}
         <div className="overflow-x-auto">
           <div className="flex space-x-2 pb-2 min-w-max">
-            {filterOptions.map((option) => {
-              const Icon = option.icon
+        {filterOptions.map((option) => {
+          const Icon = option.icon
               const isActive = filter === option.value
 
-              return (
-                <Button
-                  key={option.value}
+          return (
+            <Button
+              key={option.value}
                   variant={isActive ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilter(option.value)}
+              size="sm"
+              onClick={() => setFilter(option.value)}
                   className={`rounded-full whitespace-nowrap ${
                     isActive
                       ? "bg-blue-600 hover:bg-blue-700 text-white"
@@ -527,8 +533,8 @@ export function UnifiedTaskDashboard({
                         setFilter("project")
                         setSelectedProjectFilter(project.id)
                       }}
-                      className="rounded-full whitespace-nowrap"
-                    >
+              className="rounded-full whitespace-nowrap"
+            >
                       <div 
                         className="w-2 h-2 sm:w-3 sm:h-3 rounded-full mr-1 sm:mr-2" 
                         style={{ backgroundColor: project.color }}
@@ -537,11 +543,11 @@ export function UnifiedTaskDashboard({
                       {projectTasks.length > 0 && (
                         <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
                           {projectTasks.length}
-                        </Badge>
-                      )}
-                    </Button>
-                  )
-                })}
+                </Badge>
+              )}
+            </Button>
+          )
+        })}
                 
                 {/* Clear Project Filter */}
                 {(filter === "project" && selectedProjectFilter) && (

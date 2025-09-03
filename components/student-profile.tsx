@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTheme } from "@/components/theme-provider"
-import { Edit3, Save, X, Sun, Moon, User, GraduationCap, BookOpen, School, LogOut } from "lucide-react"
+import { Edit3, Save, X, Sun, Moon, User, GraduationCap, BookOpen, School, LogOut, HelpCircle } from "lucide-react"
 import type { StudentProfile } from "./student-onboarding"
 import { AnimatePresence } from "framer-motion"
 
@@ -16,9 +16,10 @@ interface StudentProfileComponentProps {
   profile: StudentProfile
   onUpdateProfile: (profile: StudentProfile) => void
   onLogout?: () => void
+  onShowHelp?: () => void
 }
 
-export function StudentProfileComponent({ profile, onUpdateProfile, onLogout }: StudentProfileComponentProps) {
+export function StudentProfileComponent({ profile, onUpdateProfile, onLogout, onShowHelp }: StudentProfileComponentProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedProfile, setEditedProfile] = useState<StudentProfile>(profile)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
@@ -93,100 +94,107 @@ export function StudentProfileComponent({ profile, onUpdateProfile, onLogout }: 
 
       {/* Profile Card */}
       <Card className="shadow-lg border-0 bg-card/50 backdrop-blur">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <User className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">{profile.name || "Student"}</CardTitle>
-                <CardDescription>{profile.course || "Course not set"}</CardDescription>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              {!isEditing && (
-                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="rounded-xl">
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLogout} 
-                className="rounded-xl border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
+        <CardContent className="pt-6">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-6">
+            {!isEditing && (
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="rounded-xl">
+                <Edit3 className="w-4 h-4 mr-2" />
+                Edit Profile
               </Button>
+            )}
+            {onShowHelp && (
+              <Button variant="outline" size="sm" onClick={onShowHelp} className="rounded-xl bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100">
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Help
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLogout} 
+              className="rounded-xl border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
+
+          {/* Profile Display */}
+          <div className="flex items-center space-x-3 mb-6 p-4 rounded-lg bg-muted/30">
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <User className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">{profile.name || "Student"}</h2>
+              <p className="text-sm text-muted-foreground">{profile.course || "Course not set"}</p>
             </div>
           </div>
-        </CardHeader>
 
-        <CardContent className="space-y-4">
-          {isEditing ? (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-              {profileFields.map((field) => (
-                <div key={field.key} className="space-y-2">
-                  <Label htmlFor={field.key} className="flex items-center space-x-2">
-                    <field.icon className="w-4 h-4" />
-                    <span>{field.label}</span>
-                    {field.required && <span className="text-destructive">*</span>}
-                  </Label>
-                  {field.key === "year" ? (
-                    <Select
-                      value={editedProfile[field.key]}
-                      onValueChange={(value) => setEditedProfile((prev) => ({ ...prev, [field.key]: value }))}
-                    >
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue placeholder="Select your current year" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1st Year">1st Year</SelectItem>
-                        <SelectItem value="2nd Year">2nd Year</SelectItem>
-                        <SelectItem value="3rd Year">3rd Year</SelectItem>
-                        <SelectItem value="4th Year">4th Year</SelectItem>
-                        <SelectItem value="Graduate">Graduate</SelectItem>
-                        <SelectItem value="PhD">PhD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      id={field.key}
-                      value={editedProfile[field.key] || ""}
-                      onChange={(e) => setEditedProfile((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                      placeholder={`Enter your ${field.label.toLowerCase()}`}
-                      className="rounded-xl"
-                    />
-                  )}
-                </div>
-              ))}
-
-              <div className="flex gap-3 pt-2">
-                <Button onClick={handleCancel} variant="outline" className="flex-1 rounded-xl bg-transparent">
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} className="flex-1 rounded-xl">
-                  <Save className="w-4 h-4 mr-2" />
-                  Save
-                </Button>
-              </div>
-            </motion.div>
-          ) : (
-            <div className="space-y-3">
-              {profileFields.map((field) => (
-                <div key={field.key} className="flex items-center space-x-3 p-3 rounded-xl bg-muted/30">
-                  <field.icon className="w-5 h-5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{field.label}</p>
-                    <p className="text-sm text-muted-foreground">{profile[field.key] || "Not set"}</p>
+          <div className="space-y-4">
+            {isEditing ? (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                {profileFields.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label htmlFor={field.key} className="flex items-center space-x-2">
+                      <field.icon className="w-4 h-4" />
+                      <span>{field.label}</span>
+                      {field.required && <span className="text-destructive">*</span>}
+                    </Label>
+                    {field.key === "year" ? (
+                      <Select
+                        value={editedProfile[field.key]}
+                        onValueChange={(value) => setEditedProfile((prev) => ({ ...prev, [field.key]: value }))}
+                      >
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Select your current year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1st Year">1st Year</SelectItem>
+                          <SelectItem value="2nd Year">2nd Year</SelectItem>
+                          <SelectItem value="3rd Year">3rd Year</SelectItem>
+                          <SelectItem value="4th Year">4th Year</SelectItem>
+                          <SelectItem value="Graduate">Graduate</SelectItem>
+                          <SelectItem value="PhD">PhD</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id={field.key}
+                        value={editedProfile[field.key] || ""}
+                        onChange={(e) => setEditedProfile((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                        placeholder={`Enter your ${field.label.toLowerCase()}`}
+                        className="rounded-xl"
+                      />
+                    )}
                   </div>
+                ))}
+
+                <div className="flex gap-3 pt-2">
+                  <Button onClick={handleCancel} variant="outline" className="flex-1 rounded-xl bg-transparent">
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave} className="flex-1 rounded-xl">
+                    <Save className="w-4 h-4 mr-2" />
+                    Save
+                  </Button>
                 </div>
-              ))}
-            </div>
-          )}
+              </motion.div>
+            ) : (
+              <div className="space-y-3">
+                {profileFields.map((field) => (
+                  <div key={field.key} className="flex items-center space-x-3 p-3 rounded-xl bg-muted/30">
+                    <field.icon className="w-5 h-5 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{field.label}</p>
+                      <p className="text-sm text-muted-foreground">{profile[field.key] || "Not set"}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

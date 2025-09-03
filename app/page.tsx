@@ -15,6 +15,7 @@ import { CalendarView } from "@/components/calendar-view"
 import { PomodoroTimer } from "@/components/pomodoro-timer"
 import { StudentProfileComponent } from "@/components/student-profile"
 import { useOffline } from "@/hooks/use-offline"
+import UserManual from "@/components/user-manual"
 
 export default function StudyTracker() {
   const [activeTab, setActiveTab] = useState<"home" | "calendar" | "pomodoro" | "profile">("home")
@@ -23,9 +24,10 @@ export default function StudyTracker() {
   const [collaborativeTasks, setCollaborativeTasks] = useLocalStorage<CollaborativeTask[]>("collaborative-tasks", [])
   const [projects, setProjects] = useLocalStorage<GroupProject[]>("group-projects", [])
   const [selectedProject, setSelectedProject] = useLocalStorage<GroupProject | null>("selected-project", null)
-  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [showGroups, setShowGroups] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
   
   // Offline detection
   const { isOnline } = useOffline()
@@ -138,20 +140,17 @@ export default function StudyTracker() {
   const renderActiveTab = () => {
     switch (activeTab) {
       case "home":
-        if (showGroups) {
-          return (
-            <GroupManagement
-              onSelectProject={handleSelectProject}
-              selectedProject={selectedProject}
-              projects={projects}
-              onUpdateProjects={setProjects}
-              onBack={() => setShowGroups(false)}
-              onAddCollaborativeTask={addCollaborativeTask}
-              collaborativeTasks={collaborativeTasks}
-            />
-          )
-        }
-        return (
+        return showGroups ? (
+          <GroupManagement
+            projects={projects}
+            selectedProject={selectedProject}
+            onSelectProject={setSelectedProject}
+            onUpdateProjects={setProjects}
+            onBack={() => setShowGroups(false)}
+            onAddCollaborativeTask={addCollaborativeTask}
+            collaborativeTasks={collaborativeTasks}
+          />
+        ) : (
           <UnifiedTaskDashboard
             individualTasks={tasks}
             collaborativeTasks={collaborativeTasks}
@@ -163,6 +162,7 @@ export default function StudyTracker() {
             onUpdateCollaborativeTask={updateCollaborativeTask}
             onDeleteCollaborativeTask={deleteCollaborativeTask}
             onShowGroups={() => setShowGroups(true)}
+            onShowHelp={() => setShowHelp(true)}
           />
         )
       case "calendar":
@@ -175,11 +175,21 @@ export default function StudyTracker() {
             profile={studentProfile || { name: "", course: "", year: "", university: "" }}
             onUpdateProfile={setStudentProfile}
             onLogout={handleLogout}
+            onShowHelp={() => setShowHelp(true)}
           />
         )
       default:
         return null
     }
+  }
+
+  // Render the appropriate content based on current state
+  if (showOnboarding) {
+    return <StudentOnboarding onComplete={handleOnboardingComplete} />
+  }
+
+  if (showHelp) {
+    return <UserManual onBack={() => setShowHelp(false)} />
   }
 
   if (isLoading) {
@@ -210,23 +220,24 @@ export default function StudyTracker() {
     <ThemeProvider>
       <TimerProvider>
         <div className="min-h-screen bg-background text-foreground">
-          <AnimatePresence>
-            {showOnboarding && <StudentOnboarding onComplete={handleOnboardingComplete} />}
-          </AnimatePresence>
-
           <main className="pb-20 px-3 sm:px-4 pt-0 max-w-md mx-auto">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {renderActiveTab()}
-            </motion.div>
+            <AnimatePresence>
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {renderActiveTab()}
+              </motion.div>
+            </AnimatePresence>
           </main>
 
-          <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+          <BottomNavigation
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
         </div>
       </TimerProvider>
     </ThemeProvider>

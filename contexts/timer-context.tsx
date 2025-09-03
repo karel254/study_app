@@ -16,6 +16,7 @@ interface TimerContextType {
   resetTimer: () => void
   switchMode: (mode: "pomodoro" | "short-break" | "long-break") => void
   completeSession: () => void
+  playNotificationSound: () => void
 }
 
 const TimerContext = createContext<TimerContextType | undefined>(undefined)
@@ -34,11 +35,20 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
         const saved = localStorage.getItem("pomodoro-timer-state")
         if (saved) {
           const parsed = JSON.parse(saved)
+          // Ensure all values are valid numbers
+          const timeLeft = typeof parsed.timeLeft === 'number' && !isNaN(parsed.timeLeft) 
+            ? parsed.timeLeft 
+            : TIMER_DURATIONS.pomodoro
+          
+          const completedSessions = typeof parsed.completedSessions === 'number' && !isNaN(parsed.completedSessions)
+            ? parsed.completedSessions 
+            : 0
+          
           return {
-            timeLeft: parsed.timeLeft || TIMER_DURATIONS.pomodoro,
+            timeLeft: Math.max(0, timeLeft),
             status: parsed.status || "idle",
             mode: parsed.mode || "pomodoro",
-            completedSessions: parsed.completedSessions || 0,
+            completedSessions: Math.max(0, completedSessions),
           }
         }
       } catch (error) {
@@ -55,11 +65,27 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   })
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+
 
   // Save timer state to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("pomodoro-timer-state", JSON.stringify(timerState))
+      // Only save if all values are valid
+      if (typeof timerState.timeLeft === 'number' && !isNaN(timerState.timeLeft) &&
+          typeof timerState.completedSessions === 'number' && !isNaN(timerState.completedSessions)) {
+        localStorage.setItem("pomodoro-timer-state", JSON.stringify(timerState))
+      } else {
+        // Clear corrupted data and reset to default
+        localStorage.removeItem("pomodoro-timer-state")
+        setTimerState({
+          timeLeft: TIMER_DURATIONS.pomodoro,
+          status: "idle",
+          mode: "pomodoro",
+          completedSessions: 0,
+        })
+      }
     }
   }, [timerState])
 
@@ -68,14 +94,36 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     if (timerState.status === "running" && timerState.timeLeft > 0) {
       intervalRef.current = setInterval(() => {
         setTimerState(prev => {
-          const newTimeLeft = prev.timeLeft - 1
+          // Ensure timeLeft is a valid number
+          if (typeof prev.timeLeft !== 'number' || isNaN(prev.timeLeft)) {
+            return {
+              ...prev,
+              timeLeft: TIMER_DURATIONS[prev.mode],
+              status: "idle"
+            }
+          }
+          
+          const newTimeLeft = Math.max(0, prev.timeLeft - 1)
           
           if (newTimeLeft <= 0) {
-            // Timer completed
+            // Timer completed - play notification sound
+            if (audioRef.current) {
+              audioRef.current.currentTime = 0
+              audioRef.current.play().catch(console.warn)
+              
+              // Stop audio after 10 seconds
+              setTimeout(() => {
+                if (audioRef.current) {
+                  audioRef.current.pause()
+                  audioRef.current.currentTime = 0
+                }
+              }, 10000)
+            }
+            
             if (prev.mode === "pomodoro") {
               return {
                 ...prev,
-                completedSessions: prev.completedSessions + 1,
+                completedSessions: Math.max(0, prev.completedSessions + 1),
                 status: "idle",
                 timeLeft: TIMER_DURATIONS.pomodoro,
               }
@@ -105,11 +153,18 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
 
   const startTimer = useCallback(() => {
     if (timerState.status === "idle" || timerState.status === "paused") {
-      setTimerState(prev => ({
-        ...prev,
-        status: "running",
-        timeLeft: prev.status === "idle" ? TIMER_DURATIONS[prev.mode] : prev.timeLeft,
-      }))
+      setTimerState(prev => {
+        // Ensure we have valid time values
+        const currentTimeLeft = typeof prev.timeLeft === 'number' && !isNaN(prev.timeLeft) 
+          ? prev.timeLeft 
+          : TIMER_DURATIONS[prev.mode]
+        
+        return {
+          ...prev,
+          status: "running",
+          timeLeft: prev.status === "idle" ? TIMER_DURATIONS[prev.mode] : Math.max(0, currentTimeLeft),
+        }
+      })
     }
   }, [timerState.status])
 
@@ -137,12 +192,33 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const completeSession = useCallback(() => {
-    setTimerState(prev => ({
-      ...prev,
-      completedSessions: prev.completedSessions + 1,
-      status: "idle",
-      timeLeft: TIMER_DURATIONS[prev.mode],
-    }))
+    setTimerState(prev => {
+      const currentCompleted = typeof prev.completedSessions === 'number' && !isNaN(prev.completedSessions)
+        ? prev.completedSessions 
+        : 0
+      
+      return {
+        ...prev,
+        completedSessions: Math.max(0, currentCompleted + 1),
+        status: "idle",
+        timeLeft: TIMER_DURATIONS[prev.mode],
+      }
+    })
+  }, [])
+
+  const playNotificationSound = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+      audioRef.current.play().catch(console.warn)
+      
+      // Stop audio after 10 seconds
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.pause()
+          audioRef.current.currentTime = 0
+        }
+      }, 10000)
+    }
   }, [])
 
   const value: TimerContextType = {
@@ -152,9 +228,21 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     resetTimer,
     switchMode,
     completeSession,
+    playNotificationSound,
   }
 
-  return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>
+  return (
+    <TimerContext.Provider value={value}>
+      {/* Hidden audio element for timer notifications */}
+      <audio 
+        ref={audioRef}
+        src="/notification.mp3" 
+        preload="auto"
+        className="hidden"
+      />
+      {children}
+    </TimerContext.Provider>
+  )
 }
 
 export function useTimer() {

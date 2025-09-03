@@ -138,14 +138,14 @@ export function GroupManagement({
 
     const updatedProject: GroupProject = {
       ...editingProject,
-      name: formData.name,
-      description: formData.description,
-      color: formData.color,
+            name: formData.name,
+            description: formData.description,
+            color: formData.color,
       duration: formData.duration,
       taskType: formData.taskType,
       deadline: formData.deadline,
-      updatedAt: new Date().toISOString(),
-    }
+            updatedAt: new Date().toISOString(),
+          }
 
     onUpdateProjects(projects.map((p) => (p.id === updatedProject.id ? updatedProject : p)))
     
@@ -317,8 +317,7 @@ export function GroupManagement({
                     <Input
                       id="duration"
                       type="number"
-                      min="15"
-                      step="15"
+                      min="1"
                       value={formData.duration}
                       onChange={(e) => setFormData((prev) => ({ ...prev, duration: parseInt(e.target.value) || 60 }))}
                       placeholder="60"

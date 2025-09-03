@@ -1,20 +1,19 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Home, Calendar, Timer, User, Users } from "lucide-react"
+import { BookOpen, Calendar, User, Clock } from "lucide-react"
 import { useTimer } from "@/contexts/timer-context"
-import type { ActiveTab } from "@/app/page"
 
 interface BottomNavigationProps {
-  activeTab: ActiveTab
-  onTabChange: (tab: ActiveTab) => void
+  activeTab: "home" | "pomodoro" | "calendar" | "profile"
+  onTabChange: (tab: "home" | "pomodoro" | "calendar" | "profile") => void
 }
 
 const tabs = [
-  { id: "home" as const, icon: Home, label: "Tasks" },
-  { id: "calendar" as const, icon: Calendar, label: "Calendar" },
-  { id: "pomodoro" as const, icon: Timer, label: "Focus" },
-  { id: "profile" as const, icon: User, label: "Profile" },
+  { id: "home", label: "Tasks", icon: BookOpen },
+  { id: "pomodoro", label: "Focus", icon: Clock },
+  { id: "calendar", label: "Calendar", icon: Calendar },
+  { id: "profile", label: "Profile", icon: User }
 ]
 
 export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationProps) {
