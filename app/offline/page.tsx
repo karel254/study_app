@@ -18,7 +18,17 @@ export default function OfflinePage() {
       setIsOnline(true)
       // Small delay to ensure connection is stable
       setTimeout(() => {
-        window.location.href = "/?tab=home"
+        // Check if user was logged in before going offline
+        const wasLoggedIn = localStorage.getItem("was-logged-in") === "true"
+        const hasProfile = localStorage.getItem("student-profile")
+        
+        if (wasLoggedIn || hasProfile) {
+          // User was logged in, go back to tasks
+          window.location.href = "/?tab=home"
+        } else {
+          // User was not logged in, go to registration
+          window.location.href = "/"
+        }
       }, 1000)
     }
     
@@ -50,8 +60,17 @@ export default function OfflinePage() {
       
       if (response.ok) {
         setIsOnline(true)
-        // Redirect back to tasks page (home tab)
-        window.location.href = "/?tab=home"
+        // Check if user was logged in before going offline
+        const wasLoggedIn = localStorage.getItem("was-logged-in") === "true"
+        const hasProfile = localStorage.getItem("student-profile")
+        
+        if (wasLoggedIn || hasProfile) {
+          // User was logged in, go back to tasks
+          window.location.href = "/?tab=home"
+        } else {
+          // User was not logged in, go to registration
+          window.location.href = "/"
+        }
       }
     } catch (error) {
       console.log('Still offline, retry count:', retryCount + 1)
@@ -185,7 +204,19 @@ export default function OfflinePage() {
             className="space-y-4"
           >
             <button
-              onClick={() => window.location.href = '/?tab=home'}
+              onClick={() => {
+                // Check if user was logged in before going offline
+                const wasLoggedIn = localStorage.getItem("was-logged-in") === "true"
+                const hasProfile = localStorage.getItem("student-profile")
+                
+                if (wasLoggedIn || hasProfile) {
+                  // User was logged in, go back to tasks
+                  window.location.href = "/?tab=home"
+                } else {
+                  // User was not logged in, go to registration
+                  window.location.href = "/"
+                }
+              }}
               className="px-8 py-4 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-3 bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl"
             >
               <BookOpen className="w-5 h-5" />

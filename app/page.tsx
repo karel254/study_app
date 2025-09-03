@@ -50,6 +50,13 @@ export default function StudyTracker() {
       window.history.replaceState({}, '', newUrl)
     }
   }, [])
+  
+  // Preserve login state for offline/online flow
+  useEffect(() => {
+    if (studentProfile && typeof window !== "undefined") {
+      localStorage.setItem("was-logged-in", "true")
+    }
+  }, [studentProfile])
 
   useEffect(() => {
     // Redirect to offline page if user is offline
@@ -62,10 +69,17 @@ export default function StudyTracker() {
     clearCorruptedLocalStorage()
     
     const timer = setTimeout(() => {
-      // Only show onboarding if no profile exists and we're not already showing it
-      if (!studentProfile && !showOnboarding) {
+      // Check if user was previously logged in (even if localStorage was cleared)
+      const wasLoggedIn = localStorage.getItem("was-logged-in") === "true"
+      
+      // Only show onboarding if:
+      // 1. No current profile exists AND
+      // 2. User was never logged in before AND  
+      // 3. Not already showing onboarding
+      if (!studentProfile && !wasLoggedIn && !showOnboarding) {
         setShowOnboarding(true)
       }
+      
       setIsLoading(false)
     }, 100)
 
@@ -75,6 +89,11 @@ export default function StudyTracker() {
   const handleOnboardingComplete = (profile: StudentProfile) => {
     setStudentProfile(profile)
     setShowOnboarding(false)
+    
+    // Mark that user was logged in (for offline/online state preservation)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("was-logged-in", "true")
+    }
   }
 
   // Optimized tab change for instant navigation
@@ -92,6 +111,7 @@ export default function StudyTracker() {
       localStorage.removeItem("group-projects")
       localStorage.removeItem("selected-project")
       localStorage.removeItem("pomodoro-timer-state")
+      localStorage.removeItem("was-logged-in")
       
       // Clear sessionStorage
       sessionStorage.clear()
