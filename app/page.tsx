@@ -258,7 +258,7 @@ export default function StudyTracker() {
   if (isLoading) {
     return (
       <ThemeProvider>
-        <div className="min-h-screen bg-background flex items-center justify-center" style={{ display: 'none' }}>
+        <div className="min-h-screen bg-background flex items-center justify-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -282,7 +282,7 @@ export default function StudyTracker() {
   return (
     <ThemeProvider>
       <TimerProvider>
-        <div className="min-h-screen bg-background text-foreground" style={{ display: 'none' }}>
+        <div className="min-h-screen bg-background text-foreground">
           <main className="pb-20 px-3 sm:px-4 pt-0 max-w-md mx-auto">
             <AnimatePresence mode="wait">
               <motion.div

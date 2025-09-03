@@ -228,16 +228,16 @@ export function UnifiedTaskDashboard({
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">All Tasks</h1>
           <p className="text-sm sm:text-base text-white/80">Manage your personal and team tasks</p>
-        </div>
+          </div>
         
         {/* Action Buttons - Horizontal Layout */}
         <div className="flex justify-center space-x-3 mt-4">
           <Button onClick={() => setShowAddForm("individual")} size="sm" variant="outline" className="rounded-xl bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50">
-            <User className="w-4 h-4 mr-2" />
-            Personal
-          </Button>
+              <User className="w-4 h-4 mr-2" />
+              Personal
+            </Button>
           <Button onClick={onShowGroups} size="sm" variant="outline" className="rounded-xl bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50">
-            <Users className="w-4 h-4 mr-2" />
+              <Users className="w-4 h-4 mr-2" />
             Groups
           </Button>
           {onShowHelp && (
@@ -247,7 +247,7 @@ export function UnifiedTaskDashboard({
             </Button>
           )}
         </div>
-      </div>
+        </div>
 
       {/* Quick Stats Cards - Regular scrollable content */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4">

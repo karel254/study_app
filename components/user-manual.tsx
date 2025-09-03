@@ -242,7 +242,7 @@ export default function UserManual({ onBack }: UserManualProps) {
   ]
 
   return (
-    <div className="space-y-4" style={{ display: 'none' }}>
+    <div className="space-y-4">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-4 sm:p-6 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 sm:mb-6 shadow-lg">
         <div className="flex items-center space-x-3">
