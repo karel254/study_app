@@ -4,6 +4,9 @@ import { motion } from "framer-motion"
 import { Wifi, WifiOff, RefreshCw, BookOpen, Target, Zap, CheckCircle } from "lucide-react"
 
 export default function OfflinePage() {
+  // Component is hidden but must exist for build
+  return <div style={{ display: 'none' }}>Offline Page</div>
+  
   const [isOnline, setIsOnline] = useState(false)
   const [theme, setTheme] = useState<"light" | "dark">("dark")
   const [isLoading, setIsLoading] = useState(false)
@@ -90,7 +93,7 @@ export default function OfflinePage() {
       theme === "dark" 
         ? "bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white" 
         : "bg-gradient-to-br from-blue-50 via-white to-blue-100 text-slate-900"
-    }`}>
+    }`} style={{ display: 'none' }}>
       {/* Theme Toggle */}
       <div className="absolute top-4 right-4">
         <button
