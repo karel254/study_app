@@ -133,7 +133,7 @@ export function StudentProfileComponent({ profile, onUpdateProfile, onLogout, on
 
           <div className="space-y-4">
             {isEditing ? (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.1 }} className="space-y-4">
                 {profileFields.map((field) => (
                   <div key={field.key} className="space-y-2">
                     <Label htmlFor={field.key} className="flex items-center space-x-2">
@@ -235,9 +235,10 @@ export function StudentProfileComponent({ profile, onUpdateProfile, onLogout, on
             onClick={() => setShowLogoutConfirm(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.98, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              exit={{ scale: 0.98, opacity: 0 }}
+              transition={{ duration: 0.1 }}
               className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >

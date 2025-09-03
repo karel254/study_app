@@ -52,6 +52,7 @@ export function AddTaskForm({ onSubmit, onCancel }: AddTaskFormProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.1 }}
       className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onCancel()}
     >
@@ -59,7 +60,7 @@ export function AddTaskForm({ onSubmit, onCancel }: AddTaskFormProps) {
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        transition={{ type: "spring", damping: 20, stiffness: 400, duration: 0.2 }}
         className="w-full max-w-md"
       >
         <Card className="shadow-2xl border-0 bg-card/95 backdrop-blur">

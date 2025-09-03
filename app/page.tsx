@@ -77,14 +77,57 @@ export default function StudyTracker() {
     setShowOnboarding(false)
   }
 
+  // Optimized tab change for instant navigation
+  const handleTabChange = (tab: "home" | "pomodoro" | "calendar" | "profile") => {
+    setActiveTab(tab)
+  }
+
   const handleLogout = () => {
-    // Clear all state
+    // Clear all localStorage data
+    if (typeof window !== "undefined") {
+      // Clear all app-specific data
+      localStorage.removeItem("student-profile")
+      localStorage.removeItem("tasks")
+      localStorage.removeItem("collaborative-tasks")
+      localStorage.removeItem("group-projects")
+      localStorage.removeItem("selected-project")
+      localStorage.removeItem("pomodoro-timer-state")
+      
+      // Clear sessionStorage
+      sessionStorage.clear()
+      
+      // Clear IndexedDB (if any)
+      if ('indexedDB' in window) {
+        indexedDB.databases().then(databases => {
+          databases.forEach(db => {
+            if (db.name) {
+              indexedDB.deleteDatabase(db.name)
+            }
+          })
+        })
+      }
+      
+      // Clear all cookies
+      document.cookie.split(";").forEach(cookie => {
+        const eqPos = cookie.indexOf("=")
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"
+      })
+    }
+    
+    // Clear all React state
     setStudentProfile(null)
     setTasks([])
     setCollaborativeTasks([])
     setProjects([])
     setSelectedProject(null)
+    
+    // Force fresh start
     setShowOnboarding(true)
+    setIsLoading(false)
+    
+    // Reset to home tab
+    setActiveTab("home")
   }
 
   const addTask = (task: Omit<Task, "id" | "createdAt">) => {
@@ -221,13 +264,13 @@ export default function StudyTracker() {
       <TimerProvider>
         <div className="min-h-screen bg-background text-foreground">
           <main className="pb-20 px-3 sm:px-4 pt-0 max-w-md mx-auto">
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1, ease: "easeInOut" }}
               >
                 {renderActiveTab()}
               </motion.div>
@@ -236,7 +279,7 @@ export default function StudyTracker() {
 
           <BottomNavigation
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
           />
         </div>
       </TimerProvider>

@@ -36,7 +36,7 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
                 <motion.div
                   layoutId="activeTab"
                   className="absolute inset-0 bg-white/20 rounded-2xl"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  transition={{ type: "spring", bounce: 0.1, duration: 0.2 }}
                 />
               )}
 

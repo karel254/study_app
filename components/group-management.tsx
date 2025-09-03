@@ -213,9 +213,10 @@ export function GroupManagement({
       <AnimatePresence>
         {selectedProject && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.1 }}
             className="relative overflow-hidden rounded-2xl p-4"
             style={{ backgroundColor: `${selectedProject.color}15` }}
           >
@@ -241,9 +242,10 @@ export function GroupManagement({
       <AnimatePresence>
         {showCreateForm && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.1 }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <Card className="w-full max-w-md p-6 space-y-4 bg-gradient-to-br from-blue-50 to-white border-blue-200 shadow-xl">
