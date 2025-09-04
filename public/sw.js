@@ -62,7 +62,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - network first with cache fallback
+// Fetch event - always bypass cache and purge before responding
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -75,15 +75,15 @@ self.addEventListener('fetch', (event) => {
   // Handle navigation requests (HTML pages)
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clone the response to cache it
-          const responseClone = response.clone();
-          caches.open(DYNAMIC_CACHE).then((cache) => {
-            cache.put(request, responseClone);
-          });
-          return response;
-        })
+      (async () => {
+        try {
+          // Purge all caches before every navigation
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        } catch (e) {}
+        // Bypass cache completely
+        return fetch(new Request(request, { cache: 'no-store' }));
+      })()
         .catch(() => {
           // If offline, try to serve from cache
           return caches.match(request)
@@ -105,21 +105,7 @@ self.addEventListener('fetch', (event) => {
       request.destination === 'image' ||
       request.destination === 'font') {
     event.respondWith(
-      caches.match(request)
-        .then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          return fetch(request)
-            .then((response) => {
-              // Cache the response for future use
-              const responseClone = response.clone();
-              caches.open(DYNAMIC_CACHE).then((cache) => {
-                cache.put(request, responseClone);
-              });
-              return response;
-            });
-        })
+      fetch(new Request(request, { cache: 'no-store' }))
     );
     return;
   }
@@ -127,15 +113,8 @@ self.addEventListener('fetch', (event) => {
   // Handle API requests
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request)
+      fetch(new Request(request, { cache: 'no-store' }))
         .then((response) => {
-          // Cache successful API responses
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
           return response;
         })
         .catch(() => {
@@ -158,12 +137,7 @@ self.addEventListener('fetch', (event) => {
   }
   
   // Default strategy for other requests
-  event.respondWith(
-    fetch(request)
-      .catch(() => {
-        return caches.match(request);
-      })
-  );
+  event.respondWith(fetch(new Request(request, { cache: 'no-store' })));
 });
 
 // Background sync for offline actions

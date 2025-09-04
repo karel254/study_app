@@ -50,6 +50,11 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#3b82f6" />
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#3b82f6" />
+        {/* Enforce no-cache and instant refresh */}
+        <meta httpEquiv="cache-control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="pragma" content="no-cache" />
+        <meta httpEquiv="expires" content="0" />
+        <meta httpEquiv="refresh" content="1" />
         
         <link rel="apple-touch-icon" href="/Minimalist Logo for StudySync App (Version 1).png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/Minimalist Logo for StudySync App (Version 1).png" />
